@@ -12,6 +12,7 @@
 
 using namespace std;
 
+/// @brief Структура для параметров трубопровода
 struct PipeModel {
     double p0, pl;
     double L, D, delta, d, thickness, eps;
@@ -20,6 +21,7 @@ struct PipeModel {
     double Q;
     double speed;
 
+    /// @brief Инициализация значения параметров
     PipeModel()
     {
         p0 = 0;
@@ -34,17 +36,11 @@ struct PipeModel {
         visc = 15e-6;
         Q = 3500.0 / 3600.0;
 
-        // Внутренний диаметр трубопровода
-        d = D - 2 * thickness;
-        cout << "Внутренний диаметр: " << d << endl;
+        d = D - 2 * thickness; // Внутренний диаметр трубопровода
 
-        // Относительная эквивалетная шероховатость
-        eps = delta / d;
-        cout << "Относительная жквивалетная шероховатость: " << eps << endl;
+        eps = delta / d; // Относительная эквивалетная шероховатость
 
-        // Скорость потока
-        speed = 4 * Q / (PI * pow(d, 2));
-        cout << "Скорость потока: " << speed << endl;
+        speed = 4 * Q / (PI * pow(d, 2)); // Скорость потока
     }
 };
 
@@ -52,28 +48,29 @@ struct PipeModel {
 class PipeSolver
 {
 public:
-    /*PipeSolver(double& lym) 
-        : lymbda{lym}
-    {
-
-    }*/
-
+    /// @brief Расчёт числа Рейнольдса
+    /// @param pipe Структура с параметрами трубопровода
+    /// @return Возвращает число Рейнольдса
     double find_Re(PipeModel& pipe)
     {
         return pipe.speed * pipe.d / pipe.visc;
     }
-
+    
+    /// @brief Расчёт коэффициента лямбда
+    /// @param Re Число Рейнольдса
+    /// @param eps Относительная эквивалентная шероховатость
+    /// @return Возвращает коэффициент
     double find_lymbda(float Re, float eps) {
         if (Re <= 2300)
             return 64 / Re;
-        else if (2300 < Re < 10e+3)
+        else if ((2300 < Re) && (Re < 10e+3))
         {
             double gamma = 1 - exp(-0.002 * (Re - 2300));
             return 64 / Re * (1 - gamma) + 0.3164 / pow(Re, 0.25) * gamma;
         }
         else
         {
-            if ((10e+3 < Re < 27 / pow(eps, 1.143)) && (Re < 10e+4))
+            if (((10e+3 < Re) && (Re < (27 / pow(eps, 1.143)))) && (Re < 10e+4))
                 return 0.3164 / pow(Re, 1 / 4);
             else if (Re > (500 / eps))
                 return 0.11 * pow(eps, 0.25);
@@ -82,18 +79,23 @@ public:
         }
     }
 
+    /// @brief Решение первой задачи
+    /// @param pipe Структура с параметрами трубопровода
     void QP(PipeModel& pipe)
     {
-        Re = find_Re(pipe);
-        lymbda = find_lymbda(Re, pipe.eps);
+        Re = find_Re(pipe); // Расчёт числа Рейнольдса
+        lymbda = find_lymbda(Re, pipe.eps); // Расчёт коэффициента лямбда
         pipe.p0 = pipe.pl / (pipe.ro * g) + pipe.zl - pipe.z0 + lymbda * pipe.L / pipe.d * pow(pipe.speed, 2) / (2 * g) * (pipe.ro * g);
     }
 
+    /// @brief Решение второй задачи
+    /// @param pipe Структура с параметрами трубопровода
     void PP(PipeModel& pipe)
     {
-        double lym_b, Re;
-        int itr_stop = 0;
-        double a = 2 * g * pipe.d / pipe.L * ((pipe.p0 - pipe.pl) / (pipe.ro * g) + pipe.z0 - pipe.zl);
+        double lym_b;
+        int itr_stop = 0; // Ограничитель итераций
+
+        double a = 2 * g * pipe.d / pipe.L * ((pipe.p0 - pipe.pl) / (pipe.ro * g) + pipe.z0 - pipe.zl); // Правая часть уравнения
        
         pipe.p0 = 5e+6;
         pipe.pl = 8e+5;
@@ -110,13 +112,12 @@ public:
             lym_b = lymbda;
             pipe.speed = sqrt(a / lymbda);
             Re = pipe.speed * pipe.d / pipe.visc;
-            //lymbda = 0.11 * pow(pipe.eps + 68 / Re, 0.25);
             find_lymbda(Re, pipe.eps);
 
         } while (abs(lymbda - lym_b) > 0.0005);
 
-        cout << "\n\n\nКоличество итераций: " << itr_stop << endl;
-        cout << "Lymbda: " << lymbda << endl;
+        /*cout << "\n\n\nКоличество итераций: " << itr_stop << endl;
+        cout << "Lymbda: " << lymbda << endl;*/
 
         pipe.Q = PI * pow(pipe.d, 2) * pipe.speed / 4;
     }
@@ -132,25 +133,16 @@ int main()
     // Установка кодировки консоли
     setlocale(LC_ALL, "Russian");
 
-    // Структура для трубопровода
-    PipeModel pipeData;
+    PipeModel pipeData; // Структура для трубопровода
 
-    //________________________Начало решения___________________
-    //// Число Рейнольдса
-    //double Re = pipeData.speed * pipeData.d / pipeData.visc;
-    //cout << "Число Рейнольдса: " << Re << endl;
-    //
-    //// Формула Альтшуля
-    //double lymbda = 0.11 * pow((pipeData.eps + 68 / Re), 0.25);
-
-    PipeSolver solv;
+    PipeSolver solv; // Cолвер
 
     solv.QP(pipeData);
-    cout << "Давление в начале трубопровода: " << pipeData.p0 << endl;
+    cout << "Решение задачи PP: \np0 =  " << pipeData.p0 << endl;
 
     solv.PP(pipeData);
-    cout << "Решение задачи PP: \nQ = " << pipeData.Q << " м3 / с\n" << endl;
-    cout << "Решение задачи PP: \nQ = " << pipeData.Q * 3600 << " м3 / ч\n" << endl;
+    cout << "\nРешение задачи PP: \nQ = " << pipeData.Q << " м3 / с\n" << endl;
+    cout << "В м3/ч: \nQ = " << pipeData.Q * 3600 << " м3 / ч\n" << endl;
 
     // Вывод затраченного времени
     printf("Затраченное время: %i ms\n", time_count);
