@@ -1,2 +1,8 @@
 ﻿  lurieTasks.cpp
-  lurieTasks.vcxproj -> C:\Users\Vallelongo\Desktop\characterisitcMethod\lurieTasks\lurieTasks\x64\Debug\lurieTasks.exe
+C:\Users\bibich.a\Documents\lurieTasks\lurieTasks\lurieTasks.cpp(69,23): warning C4804: '<': unsafe use of type 'bool' in operation
+C:\Users\bibich.a\Documents\lurieTasks\lurieTasks\lurieTasks.cpp(76,24): warning C4804: '<': unsafe use of type 'bool' in operation
+C:\Users\bibich.a\Documents\lurieTasks\lurieTasks\lurieTasks.cpp(88,38): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\bibich.a\Documents\lurieTasks\lurieTasks\lurieTasks.cpp(88,30): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\bibich.a\Documents\lurieTasks\lurieTasks\lurieTasks.cpp(114,33): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+C:\Users\bibich.a\Documents\lurieTasks\lurieTasks\lurieTasks.cpp(114,25): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+  lurieTasks.vcxproj -> C:\Users\bibich.a\Documents\lurieTasks\x64\Debug\lurieTasks.exe
