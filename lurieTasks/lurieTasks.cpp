@@ -3,14 +3,36 @@
 #include <vector>
 #include <cstdlib>
 
+#include <iomanip>
+#include <fixed/fixed.h>
+#include <pde_solvers/pde_solvers.h>
+
 #include <Windows.h>
 #include <ctime>
 #include <cmath>
 
-#define PI 3.14159
+#define PI 3.14
 #define g  9.81
 
 using namespace std;
+
+/// @brief Вывод в файл
+/// @param press 
+/// @param  
+void writeFun(vector<double>& press, double& dx) {
+    ofstream my_file;
+    int profCount = press.size();
+    my_file.open("res.csv");
+    my_file << "time,x,Pressure" << endl;
+
+    for (int i = 0; i < profCount; i++)
+    {
+        my_file << 0 << "," << i * dx;
+        my_file << "," << press[i] << endl;
+    }
+
+    my_file.close();
+}
 
 /// @brief Структура для параметров трубопровода
 struct PipeModel {
@@ -55,27 +77,21 @@ public:
     {
         return pipe.speed * pipe.d / pipe.visc;
     }
-    
-    /// @brief Расчёт коэффициента лямбда
-    /// @param Re Число Рейнольдса
-    /// @param eps Относительная эквивалентная шероховатость
-    /// @return Возвращает коэффициент
-    double find_lymbda(float Re, float eps) {
-        if (Re <= 2300)
-            return 64 / Re;
-        else if ((2300 < Re) && (Re < 10e+3))
+
+    double diff(PipeModel& pipe, double dx, double dz)
+    {
+        double tau = lymbda / 8 * pipe.ro * pow(pipe.speed, 2);
+        return -4 / pipe.d * tau - pipe.ro * g * dz / dx;
+    }
+
+    void euler(PipeModel& pipe, vector<double>& p, double h)
+    {
+        lymbda = hydraulic_resistance_isaev(find_Re(pipe), pipe.eps);
+        double dz = (pipe.z0 - pipe.zl) / (p.size() - 1);
+        
+        for (int i = p.size() - 2; i >= 0; i--)
         {
-            double gamma = 1 - exp(-0.002 * (Re - 2300));
-            return 64 / Re * (1 - gamma) + 0.3164 / pow(Re, 0.25) * gamma;
-        }
-        else
-        {
-            if (((10e+3 < Re) && (Re < (27 / pow(eps, 1.143)))) && (Re < 10e+4))
-                return 0.3164 / pow(Re, 1 / 4);
-            else if (Re > (500 / eps))
-                return 0.11 * pow(eps, 0.25);
-            else
-                return 0.11 * pow(eps + 68 / Re, 0.25);
+            p[i] = p[i + 1] - h * diff(pipe, h, dz);
         }
     }
 
@@ -84,8 +100,8 @@ public:
     void QP(PipeModel& pipe)
     {
         Re = find_Re(pipe); // Расчёт числа Рейнольдса
-        lymbda = find_lymbda(Re, pipe.eps); // Расчёт коэффициента лямбда
-        pipe.p0 = pipe.pl / (pipe.ro * g) + pipe.zl - pipe.z0 + lymbda * pipe.L / pipe.d * pow(pipe.speed, 2) / (2 * g) * (pipe.ro * g);
+        lymbda = hydraulic_resistance_isaev(Re, pipe.eps); // Расчёт коэффициента лямбда
+        pipe.p0 = (pipe.pl / (pipe.ro * g) + pipe.z0 - pipe.zl + lymbda * pipe.L / pipe.d * pow(pipe.speed, 2) / (2 * g)) * (pipe.ro * g);
     }
 
     /// @brief Решение второй задачи
@@ -95,10 +111,11 @@ public:
         double lym_b;
         int itr_stop = 0; // Ограничитель итераций
 
-        double a = 2 * g * pipe.d / pipe.L * ((pipe.p0 - pipe.pl) / (pipe.ro * g) + pipe.z0 - pipe.zl); // Правая часть уравнения
-       
         pipe.p0 = 5e+6;
         pipe.pl = 8e+5;
+
+        double a = 2 * g * pipe.d / pipe.L * ((pipe.p0 - pipe.pl) / (pipe.ro * g) + pipe.z0 - pipe.zl); // Правая часть уравнения
+       
         lymbda = 0.02;
         do
         {
@@ -112,7 +129,7 @@ public:
             lym_b = lymbda;
             pipe.speed = sqrt(a / lymbda);
             Re = pipe.speed * pipe.d / pipe.visc;
-            find_lymbda(Re, pipe.eps);
+            lymbda = hydraulic_resistance_isaev(Re, pipe.eps);
 
         } while (abs(lymbda - lym_b) > 0.0005);
 
@@ -137,15 +154,24 @@ int main()
 
     PipeSolver solv; // Cолвер
 
-    solv.QP(pipeData);
-    cout << "Решение задачи PP: \np0 =  " << pipeData.p0 << endl;
+    solv.QP(pipeData); // Решение первой задачи
+    cout << "Решение задачи QP: \np0 =  " << pipeData.p0 << endl;
+
+    double dx = 8;
+    int count = (int)(pipeData.L / dx + 1);
+    vector<double> press_profile(count, pipeData.pl);
+    solv.euler(pipeData, press_profile, dx);
+    cout << "\nРешение задачи QP методом Эйлера: \np0 = " << press_profile[0] << " Па" << endl;
+    writeFun(press_profile, dx);
 
     solv.PP(pipeData);
-    cout << "\nРешение задачи PP: \nQ = " << pipeData.Q << " м3 / с\n" << endl;
-    cout << "В м3/ч: \nQ = " << pipeData.Q * 3600 << " м3 / ч\n" << endl;
+    cout << "\nРешение задачи PP: \nQ = " << pipeData.Q << " м3/с" " или в м3/ч: Q = " << pipeData.Q * 3600 << " м3/ч\n";
 
     // Вывод затраченного времени
-    printf("Затраченное время: %i ms\n", time_count);
+    printf("\nЗатраченное время: %i ms\n", time_count);
+
+    // Построение графика
+    system("py charts.py");
 
     return 0;
 }

@@ -1,6 +1,4 @@
 ﻿  lurieTasks.cpp
-C:\Users\bibich.a\Documents\lurieTasks\lurieTasks\lurieTasks.cpp(87,38): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\bibich.a\Documents\lurieTasks\lurieTasks\lurieTasks.cpp(87,30): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\bibich.a\Documents\lurieTasks\lurieTasks\lurieTasks.cpp(115,33): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-C:\Users\bibich.a\Documents\lurieTasks\lurieTasks\lurieTasks.cpp(115,25): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-  lurieTasks.vcxproj -> C:\Users\bibich.a\Documents\lurieTasks\x64\Debug\lurieTasks.exe
+C:\Users\Vallelongo\Desktop\characterisitcMethod\lurieTasks\lurieTasks\lurieTasks.cpp(24,19): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Vallelongo\Desktop\characterisitcMethod\lurieTasks\lurieTasks\lurieTasks.cpp(92,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  lurieTasks.vcxproj -> C:\Users\Vallelongo\Desktop\characterisitcMethod\lurieTasks\x64\Debug\lurieTasks.exe
