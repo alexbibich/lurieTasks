@@ -1,4 +1,0 @@
-﻿  lurieTasks.cpp
-C:\Users\Vallelongo\Desktop\characterisitcMethod\lurieTasks\lurieTasks\lurieTasks.cpp(24,19): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Vallelongo\Desktop\characterisitcMethod\lurieTasks\lurieTasks\lurieTasks.cpp(92,20): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-  lurieTasks.vcxproj -> C:\Users\Vallelongo\Desktop\characterisitcMethod\lurieTasks\x64\Debug\lurieTasks.exe
