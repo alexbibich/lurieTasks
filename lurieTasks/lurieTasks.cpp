@@ -66,6 +66,28 @@ struct PipeModel {
     }
 };
 
+class sample_system : public fixed_system_t<1>
+{
+    using fixed_system_t<1>::var_type;
+    PipeModel& pipe;
+    double Re, lymbda;
+
+public:
+    sample_system(PipeModel& pipeM)
+        : pipe{ pipeM }
+    {}
+    // Задание функции невязок
+    var_type residuals(const var_type& x) {
+
+        Re = x * pipe.d / pipe.visc;
+        lymbda = hydraulic_resistance_isaev(Re, pipe.eps);
+        return
+        {
+            lymbda * (pipe.L * pow(x, 2)) / (2 * pipe.d * g) + (pipe.pl / (pipe.ro * g) + pipe.zl) - (pipe.p0 / (pipe.ro * g) + pipe.z0)
+        };
+    }
+};
+
 /// @brief Класс солвера для решения задач
 class PipeSolver
 {
@@ -102,6 +124,7 @@ public:
         Re = find_Re(pipe); // Расчёт числа Рейнольдса
         lymbda = hydraulic_resistance_isaev(Re, pipe.eps); // Расчёт коэффициента лямбда
         pipe.p0 = (pipe.pl / (pipe.ro * g) + pipe.z0 - pipe.zl + lymbda * pipe.L / pipe.d * pow(pipe.speed, 2) / (2 * g)) * (pipe.ro * g);
+        PP_Newton(pipe);
     }
 
     /// @brief Решение второй задачи
@@ -139,6 +162,27 @@ public:
         pipe.Q = PI * pow(pipe.d, 2) * pipe.speed / 4;
     }
 
+    void PP_Newton(PipeModel& pipe)
+    {
+        /*pipe.p0 = 5e+6;
+        pipe.pl = 8e+5;*/
+
+        sample_system test(pipe);
+        // Задание настроек решателя по умолчанию
+        fixed_solver_parameters_t<1, 0> parameters;
+        // Создание структуры для записи результатов расчета
+        fixed_solver_result_t<1> result;
+        // Решение системы нелинейныйх уравнений <2> с помощью решателя Ньютона - Рафсона
+        // { 0, 0 } - Начальное приближение
+        fixed_newton_raphson<1>::solve_dense(test, { 1 }, parameters, &result);
+
+        cout << "\nРешение Ньютона: " << result.argument << endl;
+        cout << "Решение Ньютона в м3/с: " << result.argument * PI * pow(pipe.d, 2) / 4 << endl;
+        cout << "Решение Ньютона в м3/ч: " << result.argument * PI * pow(pipe.d, 2) / 4 * 3600 << endl << endl;
+        
+
+    }
+
 private:
     double lymbda, Re;
 };
@@ -166,6 +210,8 @@ int main()
 
     solv.PP(pipeData);
     cout << "\nРешение задачи PP: \nQ = " << pipeData.Q << " м3/с" " или в м3/ч: Q = " << pipeData.Q * 3600 << " м3/ч\n";
+
+    //solv.PP_Newton(pipeData);
 
     // Вывод затраченного времени
     printf("\nЗатраченное время: %i ms\n", time_count);
