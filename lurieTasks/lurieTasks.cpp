@@ -79,10 +79,10 @@ public:
     double residuals(const double& v) {
 
         double Re = v * pipe.d / pipe.visc;
-        double lyambda = hydraulic_resistance_isaev(Re, pipe.eps);
+        double lambda = hydraulic_resistance_isaev(Re, pipe.eps);
         double H0 = (pipe.p0 / (pipe.ro * g) + pipe.z0);
         double HL = (pipe.pl / (pipe.ro * g) + pipe.zl);
-        double dH = lyambda * (pipe.L * pow(v, 2)) / (2 * pipe.d * g);
+        double dH = lambda * (pipe.L * pow(v, 2)) / (2 * pipe.d * g);
         double result = dH + HL - H0; // Задание функции невязок
         return result;
     }
