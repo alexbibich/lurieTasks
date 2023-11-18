@@ -115,6 +115,9 @@ public:
         {
             p[i] = p[i + 1] - h * diff(pipe, h, dz);
         }
+
+        pipe.p0 = p[0];
+        PP_Newton(pipe);
     }
 
     /// @brief Решение первой задачи
@@ -124,7 +127,7 @@ public:
         Re = find_Re(pipe); // Расчёт числа Рейнольдса
         lymbda = hydraulic_resistance_isaev(Re, pipe.eps); // Расчёт коэффициента лямбда
         pipe.p0 = (pipe.pl / (pipe.ro * g) + pipe.z0 - pipe.zl + lymbda * pipe.L / pipe.d * pow(pipe.speed, 2) / (2 * g)) * (pipe.ro * g);
-        PP_Newton(pipe);
+        cout << "Решение задачи QP: \np0 =  " << pipe.p0 << endl;
     }
 
     /// @brief Решение второй задачи
@@ -164,9 +167,6 @@ public:
 
     void PP_Newton(PipeModel& pipe)
     {
-        /*pipe.p0 = 5e+6;
-        pipe.pl = 8e+5;*/
-
         sample_system test(pipe);
         // Задание настроек решателя по умолчанию
         fixed_solver_parameters_t<1, 0> parameters;
@@ -199,8 +199,7 @@ int main()
     PipeSolver solv; // Cолвер
 
     solv.QP(pipeData); // Решение первой задачи
-    cout << "Решение задачи QP: \np0 =  " << pipeData.p0 << endl;
-
+    
     double dx = 8;
     int count = (int)(pipeData.L / dx + 1);
     vector<double> press_profile(count, pipeData.pl);
@@ -211,7 +210,9 @@ int main()
     solv.PP(pipeData);
     cout << "\nРешение задачи PP: \nQ = " << pipeData.Q << " м3/с" " или в м3/ч: Q = " << pipeData.Q * 3600 << " м3/ч\n";
 
-    //solv.PP_Newton(pipeData);
+    pipeData.p0 = 5e+6;
+    pipeData.pl = 8e+5;
+    solv.PP_Newton(pipeData);
 
     // Вывод затраченного времени
     printf("\nЗатраченное время: %i ms\n", time_count);
