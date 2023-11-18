@@ -68,23 +68,18 @@ struct PipeModel {
 
 class sample_system : public fixed_system_t<1>
 {
-    using fixed_system_t<1>::var_type;
     PipeModel& pipe;
-    double Re, lymbda;
 
 public:
     sample_system(PipeModel& pipeM)
         : pipe{ pipeM }
     {}
     // Задание функции невязок
-    var_type residuals(const var_type& x) {
+    double residuals(const double& v) {
 
-        Re = x * pipe.d / pipe.visc;
-        lymbda = hydraulic_resistance_isaev(Re, pipe.eps);
-        return
-        {
-            lymbda * (pipe.L * pow(x, 2)) / (2 * pipe.d * g) + (pipe.pl / (pipe.ro * g) + pipe.zl) - (pipe.p0 / (pipe.ro * g) + pipe.z0)
-        };
+        double Re = v * pipe.d / pipe.visc;
+        double lyambda = hydraulic_resistance_isaev(Re, pipe.eps);
+        return lyambda * (pipe.L * pow(v, 2)) / (2 * pipe.d * g) + (pipe.pl / (pipe.ro * g) + pipe.zl) - (pipe.p0 / (pipe.ro * g) + pipe.z0);
     }
 };
 
@@ -92,6 +87,24 @@ public:
 class PipeSolver
 {
 public:
+    /// @brief Расчёт скорости методом Ньютона
+    /// @param pipe Структура с параметрами трубопровода
+    void PP_Newton(PipeModel& pipe)
+    {
+        sample_system test(pipe);
+        // Задание настроек решателя по умолчанию
+        fixed_solver_parameters_t<1, 0> parameters;
+        // Создание структуры для записи результатов расчета
+        fixed_solver_result_t<1> result;
+        // Решение системы нелинейныйх уравнений <2> с помощью решателя Ньютона - Рафсона
+        // { 0, 0 } - Начальное приближение
+        fixed_newton_raphson<1>::solve_dense(test, { 1 }, parameters, &result);
+
+        cout << "\nРешение Ньютона: " << result.argument << endl;
+        cout << "Решение Ньютона в м3/с: " << result.argument * PI * pow(pipe.d, 2) / 4 << endl;
+        cout << "Решение Ньютона в м3/ч: " << result.argument * PI * pow(pipe.d, 2) / 4 * 3600 << endl << endl;
+    }
+
     /// @brief Расчёт числа Рейнольдса
     /// @param pipe Структура с параметрами трубопровода
     /// @return Возвращает число Рейнольдса
@@ -157,7 +170,7 @@ public:
             Re = pipe.speed * pipe.d / pipe.visc;
             lymbda = hydraulic_resistance_isaev(Re, pipe.eps);
 
-        } while (abs(lymbda - lym_b) > 0.0005);
+        } while (abs(lymbda - lym_b) > 0.00005);
 
         /*cout << "\n\n\nКоличество итераций: " << itr_stop << endl;
         cout << "Lymbda: " << lymbda << endl;*/
@@ -165,23 +178,7 @@ public:
         pipe.Q = PI * pow(pipe.d, 2) * pipe.speed / 4;
     }
 
-    void PP_Newton(PipeModel& pipe)
-    {
-        sample_system test(pipe);
-        // Задание настроек решателя по умолчанию
-        fixed_solver_parameters_t<1, 0> parameters;
-        // Создание структуры для записи результатов расчета
-        fixed_solver_result_t<1> result;
-        // Решение системы нелинейныйх уравнений <2> с помощью решателя Ньютона - Рафсона
-        // { 0, 0 } - Начальное приближение
-        fixed_newton_raphson<1>::solve_dense(test, { 1 }, parameters, &result);
-
-        cout << "\nРешение Ньютона: " << result.argument << endl;
-        cout << "Решение Ньютона в м3/с: " << result.argument * PI * pow(pipe.d, 2) / 4 << endl;
-        cout << "Решение Ньютона в м3/ч: " << result.argument * PI * pow(pipe.d, 2) / 4 * 3600 << endl << endl;
-        
-
-    }
+    
 
 private:
     double lymbda, Re;
