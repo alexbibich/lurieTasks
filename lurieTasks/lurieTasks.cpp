@@ -97,6 +97,8 @@ public:
         : pipe{ pipeM }
     {}
 
+    /// @brief Рассчёт производной
+    /// @param pipe 
     double diff(PipeModel& pipe, double dx, double dz)
     {
         double lambda = hydraulic_resistance_isaev(pipe.speed * pipe.d / pipe.visc, pipe.eps);
@@ -111,7 +113,7 @@ public:
     void euler(PipeModel& pipe, vector<double>& p, double h, bool direct = 1)
     {
         
-        double dz = (pipe.z0 - pipe.zl) / (p.size() - 1);
+        double dz = (pipe.zl - pipe.z0) / (p.size() - 1);
         double diff_p = diff(pipe, h, dz);
 
         if (!direct) {
@@ -158,7 +160,7 @@ public:
     {
         Re = find_Re(pipe); // Расчёт числа Рейнольдса
         lambda = hydraulic_resistance_isaev(Re, pipe.eps); // Расчёт коэффициента лямбда
-        pipe.p0 = (pipe.pl / (pipe.ro * g) + pipe.z0 - pipe.zl + lambda * pipe.L / pipe.d * pow(pipe.speed, 2) / (2 * g)) * (pipe.ro * g);
+        pipe.p0 = (pipe.pl / (pipe.ro * g) + pipe.zl - pipe.z0 + lambda * pipe.L / pipe.d * pow(pipe.speed, 2) / (2 * g)) * (pipe.ro * g);
         cout << "Решение задачи QP: \np0 =  " << pipe.p0 << endl;
     }
 
@@ -212,10 +214,10 @@ public:
     /// @param pipe Структура с параметрами трубопровода
     /// @param p Профиль давления
     /// @param h Шаг по координате
-    void euler(PipeModel& pipe, vector<double>& p, double h, bool direct = 1)
+    void euler(PipeModel& pipe, vector<double>& p, double h, bool direct = true)
     {
         lambda = hydraulic_resistance_isaev(find_Re(pipe), pipe.eps);
-        double dz = (pipe.z0 - pipe.zl) / (p.size() - 1);
+        double dz = (pipe.zl - pipe.z0) / (p.size() - 1);
         double diff_p = diff(pipe, h, dz);
 
         if (direct) {
