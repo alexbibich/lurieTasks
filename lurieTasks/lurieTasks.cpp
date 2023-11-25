@@ -114,14 +114,14 @@ public:
         double dz = (pipe.z0 - pipe.zl) / (p.size() - 1);
         double diff_p = diff(pipe, h, dz);
 
-        if (direct) {
+        if (!direct) {
             for (int i = p.size() - 2; i >= 0; i--)
             {
                 p[i] = p[i + 1] - h * diff_p;
             }
         }
         else {
-            for (int i = 1; i >= 0; i++)
+            for (int i = 1; i < p.size(); i++)
             {
                 p[i] = p[i - 1] + h * diff_p;
             }
@@ -134,7 +134,7 @@ public:
         int count = (int)(pipe.L / dx + 1);
         vector<double> press_prof(count, pipe.pl);
         euler(pipe, press_prof, dx, false);
-        double result = press_prof[count - 1] - pipe.pl; // Задание функции невязок
+        double result = press_prof[0] - pipe.p0; // Задание функции невязок
         return result;
     }
 };
@@ -225,7 +225,7 @@ public:
             }
         }
         else {
-            for (int i = 1; i >= 0; i++)
+            for (int i = 1; i < p.size(); i++)
             {
                 p[i] = p[i - 1] + h * diff_p;
             }
