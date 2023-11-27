@@ -88,6 +88,7 @@ public:
     }
 };
 
+/// @brief Класс для решения Ньютона поверх Эйлера
 class solver_Newton_mix_pp_qp : public fixed_system_t<1>
 {
     PipeModel& pipe;
@@ -191,7 +192,7 @@ public:
             Re = pipe.speed * pipe.d / pipe.visc;
             lambda = hydraulic_resistance_isaev(Re, pipe.eps);
 
-        } while (abs(lambda - lym_b) > 0.00005);
+        } while (abs(lambda - lym_b) > 0.000005);
 
         /*cout << "\n\n\nКоличество итераций: " << itr_stop << endl;
         cout << "lambda: " << lambda << endl;*/
