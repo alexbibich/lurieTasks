@@ -67,12 +67,12 @@ struct PipeModel {
 };
 
 /// @brief Класс с функцией невязок для решения методом Ньютона
-class sample_system : public fixed_system_t<1>
+class solver_Newton : public fixed_system_t<1>
 {
     PipeModel& pipe;
 
 public:
-    sample_system(PipeModel& pipeM)
+    solver_Newton(PipeModel& pipeM)
         : pipe{ pipeM }
     {}
     
@@ -88,15 +88,158 @@ public:
     }
 };
 
+/// @brief Класс для решения Ньютона поверх Эйлера
+class solver_Newton_mix_pp_qp : public fixed_system_t<1>
+{
+    PipeModel& pipe;
+
+public:
+    solver_Newton_mix_pp_qp(PipeModel& pipeM)
+        : pipe{ pipeM }
+    {}
+
+    /// @brief Рассчёт производной
+    /// @param pipe 
+    double diff(PipeModel& pipe, double dx, double dz)
+    {
+        double lambda = hydraulic_resistance_isaev(pipe.speed * pipe.d / pipe.visc, pipe.eps);
+        double tau = lambda / 8 * pipe.ro * pow(pipe.speed, 2);
+        return -4 / pipe.d * tau - pipe.ro * g * dz / dx;
+    }
+
+    /// @brief Метод Эйлера для нахождения давления в начале участка
+    /// @param pipe Структура с параметрами трубопровода
+    /// @param p Профиль давления
+    /// @param h Шаг по координате
+    void euler(PipeModel& pipe, vector<double>& p, double h, bool direct = 1)
+    {
+        
+        double dz = (pipe.zl - pipe.z0) / (p.size() - 1);
+        double diff_p = diff(pipe, h, dz);
+
+        if (!direct) {
+            for (int i = p.size() - 2; i >= 0; i--)
+            {
+                p[i] = p[i + 1] - h * diff_p;
+            }
+        }
+        else {
+            for (int i = 1; i < p.size(); i++)
+            {
+                p[i] = p[i - 1] + h * diff_p;
+            }
+        }
+    }
+
+    double residuals(const double& v) {
+        pipe.speed = v;
+        double dx = 8;
+        int count = (int)(pipe.L / dx + 1);
+        vector<double> press_prof(count, pipe.pl);
+        euler(pipe, press_prof, dx, false);
+        double result = press_prof[0] - pipe.p0; // Задание функции невязок
+        return result;
+    }
+};
+
 /// @brief Класс солвера для решения задач
 class PipeSolver
 {
 public:
+
+    /// @brief Расчёт числа Рейнольдса
+    /// @param pipe Структура с параметрами трубопровода
+    /// @return Возвращает число Рейнольдса
+    double find_Re(PipeModel& pipe)
+    {
+        return pipe.speed * pipe.d / pipe.visc;
+    }
+
+    /// @brief Решение первой задачи по формуле
+    /// @param pipe Структура с параметрами трубопровода
+    void QP(PipeModel& pipe)
+    {
+        Re = find_Re(pipe); // Расчёт числа Рейнольдса
+        lambda = hydraulic_resistance_isaev(Re, pipe.eps); // Расчёт коэффициента лямбда
+        pipe.p0 = (pipe.pl / (pipe.ro * g) + pipe.zl - pipe.z0 + lambda * pipe.L / pipe.d * pow(pipe.speed, 2) / (2 * g)) * (pipe.ro * g);
+        cout << "Решение задачи QP: \np0 =  " << pipe.p0 << endl;
+    }
+
+    /// @brief Решение второй задачи методом простой итерации
+    /// @param pipe Структура с параметрами трубопровода
+    void PP(PipeModel& pipe)
+    {
+        double lym_b;
+        int itr_stop = 0; // Ограничитель итераций
+
+        pipe.p0 = 5e+6;
+        pipe.pl = 8e+5;
+
+        double a = 2 * g * pipe.d / pipe.L * ((pipe.p0 - pipe.pl) / (pipe.ro * g) + pipe.z0 - pipe.zl); // Правая часть уравнения
+       
+        lambda = 0.02;
+        do
+        {
+            itr_stop++;
+            if (itr_stop > 1000)
+            {
+                cout << "Расчёт неудался!" << endl;
+                break;
+            }
+                
+            lym_b = lambda;
+            pipe.speed = sqrt(a / lambda);
+            Re = pipe.speed * pipe.d / pipe.visc;
+            lambda = hydraulic_resistance_isaev(Re, pipe.eps);
+
+        } while (abs(lambda - lym_b) > 0.000005);
+
+        /*cout << "\n\n\nКоличество итераций: " << itr_stop << endl;
+        cout << "lambda: " << lambda << endl;*/
+
+        pipe.Q = PI * pow(pipe.d, 2) * pipe.speed / 4;
+    }
+
+    /// @brief Вспомогательный расчёт для Эйлера
+    /// @param pipe Структура с параметрами трубопровода
+    /// @param dx
+    /// @param dz 
+    /// @return 
+    double diff(PipeModel& pipe, double dx, double dz)
+    {
+        double tau = lambda / 8 * pipe.ro * pow(pipe.speed, 2);
+        return -4 / pipe.d * tau - pipe.ro * g * dz / dx;
+    }
+
+    /// @brief Метод Эйлера для нахождения давления в начале участка
+    /// @param pipe Структура с параметрами трубопровода
+    /// @param p Профиль давления
+    /// @param h Шаг по координате
+    void euler(PipeModel& pipe, vector<double>& p, double h, bool direct = true)
+    {
+        lambda = hydraulic_resistance_isaev(find_Re(pipe), pipe.eps);
+        double dz = (pipe.zl - pipe.z0) / (p.size() - 1);
+        double diff_p = diff(pipe, h, dz);
+
+        if (direct) {
+            for (int i = p.size() - 2; i >= 0; i--)
+            {
+                p[i] = p[i + 1] - h * diff_p;
+            }
+        }
+        else {
+            for (int i = 1; i < p.size(); i++)
+            {
+                p[i] = p[i - 1] + h * diff_p;
+            }
+        }
+    }
+
     /// @brief Расчёт скорости методом Ньютона
     /// @param pipe Структура с параметрами трубопровода
     void PP_Newton(PipeModel& pipe)
     {
-        sample_system test(pipe);
+        solver_Newton test(pipe);
         // Задание настроек решателя по умолчанию
         fixed_solver_parameters_t<1, 0> parameters;
         // Создание структуры для записи результатов расчета
@@ -110,88 +253,25 @@ public:
         cout << "Решение Ньютона в м3/ч: " << result.argument * PI * pow(pipe.d, 2) / 4 * 3600 << endl << endl;
     }
 
-    /// @brief Расчёт числа Рейнольдса
-    /// @param pipe Структура с параметрами трубопровода
-    /// @return Возвращает число Рейнольдса
-    double find_Re(PipeModel& pipe)
+    void PP_QP_mix(PipeModel& pipe)
     {
-        return pipe.speed * pipe.d / pipe.visc;
-    }
+        solver_Newton_mix_pp_qp test(pipe);
+        // Задание настроек решателя по умолчанию
+        fixed_solver_parameters_t<1, 0> parameters;
+        // Создание структуры для записи результатов расчета
+        fixed_solver_result_t<1> result;
+        // Решение системы нелинейныйх уравнений <1> с помощью решателя Ньютона - Рафсона
+        // { 0, 0 } - Начальное приближение
+        fixed_newton_raphson<1>::solve_dense(test, { 1 }, parameters, &result);
 
-    /// @brief Вспомогательный расчёт для Эйлера
-    /// @param pipe Структура с параметрами трубопровода
-    /// @param dx
-    /// @param dz 
-    /// @return 
-    double diff(PipeModel& pipe, double dx, double dz)
-    {
-        double tau = lymbda / 8 * pipe.ro * pow(pipe.speed, 2);
-        return -4 / pipe.d * tau - pipe.ro * g * dz / dx;
-    }
+        cout << "\nРешение Ньютона поверх Эйлера: " << result.argument << endl;
+        cout << "Решение Ньютона поверх Эйлера в м3/с: " << result.argument * PI * pow(pipe.d, 2) / 4 << endl;
+        cout << "Решение Ньютона поверх Эйлера в м3/ч: " << result.argument * PI * pow(pipe.d, 2) / 4 * 3600 << endl << endl;
 
-    /// @brief Метод Эйлера для нахождения давления в начале участка
-    /// @param pipe Структура с параметрами трубопровода
-    /// @param p Профиль давления
-    /// @param h Шаг по координате
-    void euler(PipeModel& pipe, vector<double>& p, double h)
-    {
-        lymbda = hydraulic_resistance_isaev(find_Re(pipe), pipe.eps);
-        double dz = (pipe.z0 - pipe.zl) / (p.size() - 1);
-        double diff_p = diff(pipe, h, dz);
-        
-        for (int i = p.size() - 2; i >= 0; i--)
-        {
-            p[i] = p[i + 1] - h * diff_p;
-        }
-    }
-
-    /// @brief Решение первой задачи
-    /// @param pipe Структура с параметрами трубопровода
-    void QP(PipeModel& pipe)
-    {
-        Re = find_Re(pipe); // Расчёт числа Рейнольдса
-        lymbda = hydraulic_resistance_isaev(Re, pipe.eps); // Расчёт коэффициента лямбда
-        pipe.p0 = (pipe.pl / (pipe.ro * g) + pipe.z0 - pipe.zl + lymbda * pipe.L / pipe.d * pow(pipe.speed, 2) / (2 * g)) * (pipe.ro * g);
-        cout << "Решение задачи QP: \np0 =  " << pipe.p0 << endl;
-    }
-
-    /// @brief Решение второй задачи
-    /// @param pipe Структура с параметрами трубопровода
-    void PP(PipeModel& pipe)
-    {
-        double lym_b;
-        int itr_stop = 0; // Ограничитель итераций
-
-        pipe.p0 = 5e+6;
-        pipe.pl = 8e+5;
-
-        double a = 2 * g * pipe.d / pipe.L * ((pipe.p0 - pipe.pl) / (pipe.ro * g) + pipe.z0 - pipe.zl); // Правая часть уравнения
-       
-        lymbda = 0.02;
-        do
-        {
-            itr_stop++;
-            if (itr_stop > 1000)
-            {
-                cout << "Расчёт неудался!" << endl;
-                break;
-            }
-                
-            lym_b = lymbda;
-            pipe.speed = sqrt(a / lymbda);
-            Re = pipe.speed * pipe.d / pipe.visc;
-            lymbda = hydraulic_resistance_isaev(Re, pipe.eps);
-
-        } while (abs(lymbda - lym_b) > 0.00005);
-
-        /*cout << "\n\n\nКоличество итераций: " << itr_stop << endl;
-        cout << "Lymbda: " << lymbda << endl;*/
-
-        pipe.Q = PI * pow(pipe.d, 2) * pipe.speed / 4;
     }
 
 private:
-    double lymbda, Re;
+    double lambda, Re;
 };
 
 int main()
@@ -226,6 +306,9 @@ int main()
     pipeData.pl = 8e+5;
     // Решение второй задачи методом Ньютона
     solv.PP_Newton(pipeData); 
+
+    // Решение второй задачи методом Ньютона поверх Эйлера
+    solv.PP_QP_mix(pipeData);
 
     // Вывод затраченного времени
     printf("\nЗатраченное время: %i ms\n", time_count);
