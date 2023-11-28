@@ -274,7 +274,10 @@ private:
     double lambda, Re;
 };
 
-int main()
+/// @brief Инициализация исходных данных
+/// @param pipe Ссылка на структуру трубы
+/// @param oil_model Ссылка на структуру нефти/нефтепродукта
+void init_cond(pipe_properties_t& pipe, oil_parameters_t& oil_model)
 {
     double L = 8e+4;
     double x0 = 0;
@@ -289,20 +292,24 @@ int main()
     double p_capacity = 10e6;
     size_t n = 1e3;
 
+    pipe.profile = PipeProfile::create(n, x0, xl, z0, zl, p_capacity);
+    pipe.wall.wallThickness = thickness;
+    pipe.wall.diameter = D - 2 * pipe.wall.wallThickness;
+    pipe.wall.equivalent_roughness = 15e-6;
+
+    oil_model.density.nominal_density = ro;
+    oil_model.viscosity.nominal_viscosity = visc;
+}
+
+int main()
+{
     // Модель трубопровода
     pipe_properties_t pipe_prop;
+    // Модель нефти
     oil_parameters_t oil;
    
-
-    // Модель нефти
-     // Инициализация исходных данных
-    pipe_prop.profile = PipeProfile::create(n, x0, xl, z0, zl, p_capacity);
-    pipe_prop.wall.wallThickness = thickness;
-    pipe_prop.wall.diameter = D - 2 * pipe_prop.wall.wallThickness;
-    pipe_prop.wall.equivalent_roughness = 15e-6;
+    init_cond(pipe_prop, oil);
     
-    oil.density.nominal_density = ro;
-    oil.viscosity.nominal_viscosity = visc;
 
     double p0 = 0;
     double pl = 6e5;
