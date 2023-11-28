@@ -276,6 +276,38 @@ private:
 
 int main()
 {
+    double L = 8e+4;
+    double x0 = 0;
+    double xl = 8e4;
+    double D = 0.720;
+    double thickness = 0.010;
+    double delta = 15e-6;
+    double z0 = 50;
+    double zl = 100;
+    double ro = 870;
+    double visc = 15e-6;
+    double p_capacity = 10e6;
+    size_t n = 1e3;
+
+    // Модель трубопровода
+    pipe_properties_t pipe_prop;
+    oil_parameters_t oil;
+   
+
+    // Модель нефти
+     // Инициализация исходных данных
+    pipe_prop.profile = PipeProfile::create(n, x0, xl, z0, zl, p_capacity);
+    pipe_prop.wall.wallThickness = thickness;
+    pipe_prop.wall.diameter = D - 2 * pipe_prop.wall.wallThickness;
+    pipe_prop.wall.equivalent_roughness = 15e-6;
+    
+    oil.density.nominal_density = ro;
+    oil.viscosity.nominal_viscosity = visc;
+
+    double p0 = 0;
+    double pl = 6e5;
+    double eps = pipe_prop.wall.getCompressionRatio(); // Расчёт относительной шероховатости
+
     int time_count = clock();
 
     // Установка кодировки консоли
