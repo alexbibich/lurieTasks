@@ -295,7 +295,7 @@ void init_cond(pipe_properties_t& pipe, oil_parameters_t& oil_model)
     pipe.profile = PipeProfile::create(n, x0, xl, z0, zl, p_capacity);
     pipe.wall.wallThickness = thickness;
     pipe.wall.diameter = D - 2 * pipe.wall.wallThickness;
-    pipe.wall.equivalent_roughness = 15e-6;
+    pipe.wall.equivalent_roughness = delta;
 
     oil_model.density.nominal_density = ro;
     oil_model.viscosity.nominal_viscosity = visc;
