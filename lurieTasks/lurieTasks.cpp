@@ -30,7 +30,7 @@ inline std::string prepare_test_folder()
 
 /// @brief Очищает содержимое файла
 /// @param filename Название файла
-void clear_file(string filename = "answers.txt")
+void clear_file(string filename = "output/answers.txt")
 {
     ofstream ofs;
     ofs.open(filename, ofstream::out | ofstream::trunc);

@@ -4,7 +4,7 @@
 /// @param lable Пояснение
 /// @param answer Ответ
 /// @param filename Имя файла
-void write_ans(string lable, auto answer, string filename="answers.txt")
+void write_ans(string lable, auto answer, string filename="output/answers.txt")
 {
     ofstream answ;
     answ.open(filename, ios::app);
@@ -15,10 +15,10 @@ void write_ans(string lable, auto answer, string filename="answers.txt")
 /// @brief Запись профиля давления в файл
 /// @param press Профиль давления
 /// @param dx Шаг по координате
-void write_profile(vector<double>& press, double& dx) {
+void write_profile(vector<double>& press, double& dx, string filename= "output/res.csv") {
     ofstream press_file;
     size_t profCount = press.size();
-    press_file.open("res.csv");
+    press_file.open(filename);
     press_file << "time,x,Pressure" << endl;
 
     for (int i = 0; i < profCount; i++)
