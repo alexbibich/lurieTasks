@@ -12,6 +12,9 @@ void write_ans(string lable, auto answer, string filename="answers.txt")
     answ.close();
 }
 
+/// @brief Запись профиля давления в файл
+/// @param press Профиль давления
+/// @param dx Шаг по координате
 void write_profile(vector<double>& press, double& dx) {
     ofstream press_file;
     size_t profCount = press.size();
@@ -27,6 +30,9 @@ void write_profile(vector<double>& press, double& dx) {
     press_file.close();
 }
 
+/// @brief Инициализация данных в структурах
+/// @param pipe Ссылка на структуру трубы
+/// @param oil Ссылка на структуру нефти
 void init_cond(pipe_properties_t& pipe, oil_parameters_t& oil)
 {
     double L = 8e+4;
