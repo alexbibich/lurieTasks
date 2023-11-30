@@ -1,9 +1,9 @@
 #pragma once
 
-/// @brief Вывод ответа с пояснением
-/// @param lable Пояснение
-/// @param answer Ответ
-/// @param filename Имя файла
+/// @brief Р’С‹РІРѕРґ РѕС‚РІРµС‚Р° СЃ РїРѕСЏСЃРЅРµРЅРёРµРј
+/// @param lable РџРѕСЏСЃРЅРµРЅРёРµ
+/// @param answer РћС‚РІРµС‚
+/// @param filename РРјСЏ С„Р°Р№Р»Р°
 void write_ans(string lable, auto answer, string filename="answers.txt")
 {
     ofstream answ;
@@ -12,9 +12,9 @@ void write_ans(string lable, auto answer, string filename="answers.txt")
     answ.close();
 }
 
-/// @brief Запись профиля давления в файл
-/// @param press Профиль давления
-/// @param dx Шаг по координате
+/// @brief Р—Р°РїРёСЃСЊ РїСЂРѕС„РёР»СЏ РґР°РІР»РµРЅРёСЏ РІ С„Р°Р№Р»
+/// @param press РџСЂРѕС„РёР»СЊ РґР°РІР»РµРЅРёСЏ
+/// @param dx РЁР°Рі РїРѕ РєРѕРѕСЂРґРёРЅР°С‚Рµ
 void write_profile(vector<double>& press, double& dx) {
     ofstream press_file;
     size_t profCount = press.size();
@@ -30,9 +30,9 @@ void write_profile(vector<double>& press, double& dx) {
     press_file.close();
 }
 
-/// @brief Инициализация данных в структурах
-/// @param pipe Ссылка на структуру трубы
-/// @param oil Ссылка на структуру нефти
+/// @brief РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РґР°РЅРЅС‹С… РІ СЃС‚СЂСѓРєС‚СѓСЂР°С…
+/// @param pipe РЎСЃС‹Р»РєР° РЅР° СЃС‚СЂСѓРєС‚СѓСЂСѓ С‚СЂСѓР±С‹
+/// @param oil РЎСЃС‹Р»РєР° РЅР° СЃС‚СЂСѓРєС‚СѓСЂСѓ РЅРµС„С‚Рё
 void init_cond(pipe_properties_t& pipe, oil_parameters_t& oil)
 {
     double L = 8e+4;
@@ -57,12 +57,12 @@ void init_cond(pipe_properties_t& pipe, oil_parameters_t& oil)
     oil.viscosity.nominal_viscosity = visc;
 }
 
-/// @brief Решение задачи 1 (QP) по формуле
+/// @brief Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё 1 (QP) РїРѕ С„РѕСЂРјСѓР»Рµ
 TEST(QP_task, Formula)
 {
-    // Модель трубопровода
+    // РњРѕРґРµР»СЊ С‚СЂСѓР±РѕРїСЂРѕРІРѕРґР°
     pipe_properties_t pipe_prop;
-    // Модель нефти
+    // РњРѕРґРµР»СЊ РЅРµС„С‚Рё
     oil_parameters_t oil;
 
     init_cond(pipe_prop, oil);
@@ -74,15 +74,15 @@ TEST(QP_task, Formula)
     QP_tasks_solver solver(pipe_prop, oil);
 
     double p0 = solver.QP_formula_solve(pl, Q, direction);
-    write_ans("Решение задачи QP по формуле, Па: ", p0);
+    write_ans("Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё QP РїРѕ С„РѕСЂРјСѓР»Рµ, РџР°: ", p0);
 }
 
-/// @brief Решение задачи 2 (PP) по методом простой итерации
+/// @brief Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё 2 (PP) РїРѕ РјРµС‚РѕРґРѕРј РїСЂРѕСЃС‚РѕР№ РёС‚РµСЂР°С†РёРё
 TEST(PP_task, Iteration)
 {
-    // Модель трубопровода
+    // РњРѕРґРµР»СЊ С‚СЂСѓР±РѕРїСЂРѕРІРѕРґР°
     pipe_properties_t pipe_prop;
-    // Модель нефти
+    // РњРѕРґРµР»СЊ РЅРµС„С‚Рё
     oil_parameters_t oil;
 
     init_cond(pipe_prop, oil);
@@ -93,16 +93,16 @@ TEST(PP_task, Iteration)
     PP_tasks_solver solver(pipe_prop, oil);
 
     double Q = solver.PP_Iteration_solve(p0, pl);
-    write_ans("Решение задачи PP методом простых итераций, м3/c: ", Q);
-    write_ans("Решение задачи PP методом простых итераций, м3/ч: ", Q * 3600);
+    write_ans("Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё PP РјРµС‚РѕРґРѕРј РїСЂРѕСЃС‚С‹С… РёС‚РµСЂР°С†РёР№, Рј3/c: ", Q);
+    write_ans("Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё PP РјРµС‚РѕРґРѕРј РїСЂРѕСЃС‚С‹С… РёС‚РµСЂР°С†РёР№, Рј3/С‡: ", Q * 3600);
 }
 
-/// @brief Решение задачи 1 (QP) по методом Эйлера
+/// @brief Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё 1 (QP) РїРѕ РјРµС‚РѕРґРѕРј Р­Р№Р»РµСЂР°
 TEST(QP_task, Euler)
 {
-    // Модель трубопровода
+    // РњРѕРґРµР»СЊ С‚СЂСѓР±РѕРїСЂРѕРІРѕРґР°
     pipe_properties_t pipe_prop;
-    // Модель нефти
+    // РњРѕРґРµР»СЊ РЅРµС„С‚Рё
     oil_parameters_t oil;
 
     init_cond(pipe_prop, oil);
@@ -116,16 +116,16 @@ TEST(QP_task, Euler)
     QP_tasks_solver solver(pipe_prop, oil);
 
     vector<double> press_profile = solver.QP_Euler_solver(pl, speed, direction);
-    write_ans("Решение задачи QP методом Эйлера, Па: ", press_profile.front());
+    write_ans("Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё QP РјРµС‚РѕРґРѕРј Р­Р№Р»РµСЂР°, РџР°: ", press_profile.front());
     write_profile(press_profile, dx);
 }
 
-/// @brief Решение задачи 2 (PP) по методом Ньютона
+/// @brief Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё 2 (PP) РїРѕ РјРµС‚РѕРґРѕРј РќСЊСЋС‚РѕРЅР°
 TEST(PP_task, Newton)
 {
-    // Модель трубопровода
+    // РњРѕРґРµР»СЊ С‚СЂСѓР±РѕРїСЂРѕРІРѕРґР°
     pipe_properties_t pipe_prop;
-    // Модель нефти
+    // РњРѕРґРµР»СЊ РЅРµС„С‚Рё
     oil_parameters_t oil;
 
     init_cond(pipe_prop, oil);
@@ -136,17 +136,17 @@ TEST(PP_task, Newton)
     PP_tasks_solver solver(pipe_prop, oil);
 
     double Q = solver.PP_Newton_solve(p0, pl);
-    write_ans("Решение задачи PP методом Ньютона, м3/c: ", Q);
-    write_ans("Решение задачи PP методом Ньютона, м3/ч: ", Q * 3600);
+    write_ans("Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё PP РјРµС‚РѕРґРѕРј РќСЊСЋС‚РѕРЅР°, Рј3/c: ", Q);
+    write_ans("Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё PP РјРµС‚РѕРґРѕРј РќСЊСЋС‚РѕРЅР°, Рј3/С‡: ", Q * 3600);
 
 }
 
-/// @brief Решение задачи 2 (PP) по методом Ньютона поверх Эйлера
+/// @brief Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё 2 (PP) РїРѕ РјРµС‚РѕРґРѕРј РќСЊСЋС‚РѕРЅР° РїРѕРІРµСЂС… Р­Р№Р»РµСЂР°
 TEST(PP_task, Newton_Euler)
 {
-    // Модель трубопровода
+    // РњРѕРґРµР»СЊ С‚СЂСѓР±РѕРїСЂРѕРІРѕРґР°
     pipe_properties_t pipe_prop;
-    // Модель нефти
+    // РњРѕРґРµР»СЊ РЅРµС„С‚Рё
     oil_parameters_t oil;
 
     init_cond(pipe_prop, oil);
@@ -157,6 +157,6 @@ TEST(PP_task, Newton_Euler)
     PP_tasks_solver solver(pipe_prop, oil);
 
     double Q = solver.PP_Newton_Euler_solve(p0, pl);
-    write_ans("Решение задачи PP методом Ньютона поверх Эйлера, м3/c: ", Q);
-    write_ans("Решение задачи PP методом Ньютона поверх Эйлера, м3/ч: ", Q * 3600);
+    write_ans("Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё PP РјРµС‚РѕРґРѕРј РќСЊСЋС‚РѕРЅР° РїРѕРІРµСЂС… Р­Р№Р»РµСЂР°, Рј3/c: ", Q);
+    write_ans("Р РµС€РµРЅРёРµ Р·Р°РґР°С‡Рё PP РјРµС‚РѕРґРѕРј РќСЊСЋС‚РѕРЅР° РїРѕРІРµСЂС… Р­Р№Р»РµСЂР°, Рј3/С‡: ", Q * 3600);
 }
