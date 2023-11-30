@@ -89,10 +89,7 @@ TEST(PP_task, Iteration)
 
     double p0 = 5e6;
     double pl = 0.8e6;
-
-    PP_tasks_solver solver(pipe_prop, oil);
-
-    double Q = solver.PP_Iteration_solve(p0, pl);
+    double Q = PP_Iteration_solve(pipe_prop, oil, p0, pl);
     write_ans("Решение задачи PP методом простых итераций, м3/c: ", Q);
     write_ans("Решение задачи PP методом простых итераций, м3/ч: ", Q * 3600);
 }
@@ -133,9 +130,9 @@ TEST(PP_task, Newton)
     double p0 = 5e6;
     double pl = 0.8e6;
 
-    PP_tasks_solver solver(pipe_prop, oil);
+    solver_Newton Newton_solver(pipe_prop, oil, p0, pl);
 
-    double Q = solver.PP_Newton_solve(p0, pl);
+    double Q = Newton_solver.solve();
     write_ans("Решение задачи PP методом Ньютона, м3/c: ", Q);
     write_ans("Решение задачи PP методом Ньютона, м3/ч: ", Q * 3600);
 
@@ -154,9 +151,9 @@ TEST(PP_task, Newton_Euler)
     double p0 = 5e6;
     double pl = 0.8e6;
 
-    PP_tasks_solver solver(pipe_prop, oil);
+    solver_Newton_Euler N_E_solver(pipe_prop, oil, p0, pl);
 
-    double Q = solver.PP_Newton_Euler_solve(p0, pl);
+    double Q = N_E_solver.solve();
     write_ans("Решение задачи PP методом Ньютона поверх Эйлера, м3/c: ", Q);
     write_ans("Решение задачи PP методом Ньютона поверх Эйлера, м3/ч: ", Q * 3600);
 }
