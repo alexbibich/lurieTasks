@@ -153,13 +153,13 @@ double PP_Iteration_solve(const pipe_properties_t& pipe, const oil_parameters_t&
 class solver_Newton : public fixed_system_t<1>
 {
 public:
-	solver_Newton(const pipe_properties_t& pipe_t, const oil_parameters_t& oil_t, double p0, double pl, residual_fun_t res_fun)
-		: pipe{ pipe_t }, oil{ oil_t }, p{ p0, pl }, res_func{ res_fun }
+	solver_Newton(const function<double(double v)>& res_fun)
+		: res_func{ res_fun }
 	{
 	}
 
 	double residuals(const double& v) {
-		double result = res_func(pipe, oil, v, p);
+		double result = res_func(v);
 		return result;
 	}
 
@@ -176,15 +176,12 @@ public:
 		// { 0, 0 } - Начальное приближение
 		fixed_newton_raphson<1>::solve_dense(*this, { 1 }, parameters, &result);
 
-		double Q = result.argument * PI * pow(pipe.wall.diameter, 2) / 4;
+		double speed = result.argument;
 
-		return Q;
+		return speed;
 	}
 protected:
-	const pipe_properties_t& pipe;
-	const oil_parameters_t& oil;
-	double p[2];
-	residual_fun_t res_func;
+	const function<double(double v)>& res_func;
 };
 
 
