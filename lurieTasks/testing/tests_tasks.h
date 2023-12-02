@@ -180,7 +180,7 @@ TEST(PP_task, Newton_Euler)
 
             solver.QP_Euler_solver(press_profile, v, false);
             
-            return press_profile[0] - p0;
+            return press_profile.front() - p0;
         };
 
     solver_Newton Newton_solver(res_fun);
