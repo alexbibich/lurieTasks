@@ -14,8 +14,7 @@
 #define g  9.81
 
 using namespace std;
-
-typedef double (*residual_fun_t) (const pipe_properties_t& pipe, const oil_parameters_t& oil, double v, double p[2]);
+typedef function<double(const double& v)> residual_func_t;
 typedef vector<double> profile_t;
 
 
@@ -153,7 +152,7 @@ double PP_Iteration_solve(const pipe_properties_t& pipe, const oil_parameters_t&
 class solver_Newton : public fixed_system_t<1>
 {
 public:
-	solver_Newton(const function<double(double v)>& res_fun)
+	solver_Newton(const residual_func_t& res_fun)
 		: res_func{ res_fun }
 	{
 	}
@@ -181,7 +180,7 @@ public:
 		return speed;
 	}
 protected:
-	const function<double(double v)>& res_func;
+	const residual_func_t& res_func;
 };
 
 

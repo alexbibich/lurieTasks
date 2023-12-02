@@ -134,8 +134,8 @@ TEST(PP_task, Newton)
     double pl = 0.8e6;
 
     // Задание функции невязок
-    function<double(double v)> res_fun =
-        [pipe_prop, oil, p0, pl](double v)
+    residual_func_t res_fun =
+        [pipe_prop, oil, p0, pl](const double& v)
         {
             // Расчёт коэффициента лямбда
             double lambda = getLambda(pipe_prop, oil, v);
@@ -170,8 +170,8 @@ TEST(PP_task, Newton_Euler)
     double pl = 0.8e6;
 
     // Задание функции невязок
-    function<double(double v)> res_fun =
-        [pipe_prop, oil, p0, pl](double v)
+    residual_func_t res_fun =
+        [pipe_prop, oil, p0, pl](const double& v)
         {
             size_t dots_count = pipe_prop.profile.getPointCount();
             profile_t press_profile(dots_count, pl);
