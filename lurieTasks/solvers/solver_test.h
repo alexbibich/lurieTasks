@@ -14,6 +14,9 @@
 #define g  9.81
 
 using namespace std;
+typedef function<double(const double& v)> residual_func_t;
+typedef vector<double> profile_t;
+
 
 /// @brief Расчёт коэффициента лямбда
 /// @param pipe Структура трубы
@@ -46,7 +49,7 @@ public:
 		// Расчёт коэффициента лямбда
 		double lambda = getLambda(pipe, oil, speed);
 		// Длина трубопровода
-		double L = pipe.profile.coordinates.back() - pipe.profile.coordinates.front();
+		double L = pipe.profile.getLength();
 		// Перепал высот
 		double dz = pipe.profile.heights.back() - pipe.profile.heights.front();
 		// Потеря напора на трение
@@ -64,7 +67,7 @@ public:
 	/// @param speed Известная скорость
 	/// @param direction Направление расчёта профиля
 	/// @return Профиль давления
-	vector<double> QP_Euler_solver(double p, double speed, bool direction = true)
+	profile_t QP_Euler_solver(profile_t& press_prof, double speed, bool direction = true)
 	{
 		//Расчёт коэффициента лямбда
 		double lambda = getLambda(pipe, oil, speed);
@@ -76,8 +79,6 @@ public:
 		double dx = pipe.profile.coordinates[1] - pipe.profile.coordinates[0];
 		// Количество точек профиля
 		size_t num_dots = pipe.profile.getPointCount();
-		// Профиль давления
-		vector<double> press_prof(num_dots, p);
 		// Расчёт тау и производной 
 		double tau = lambda / 8 * rho * pow(speed, 2);
 		double diff = -4 / pipe.wall.diameter * tau - rho * g * dz / dx;
@@ -117,7 +118,7 @@ double PP_Iteration_solve(const pipe_properties_t& pipe, const oil_parameters_t&
 	size_t itr_max = 1000;
 
 	// Для компактности записей
-	double L = pipe.profile.coordinates.back() - pipe.profile.coordinates.front();
+	double L = pipe.profile.getLength();
 	double d = pipe.wall.diameter;
 	double visc = oil.viscosity.nominal_viscosity;
 	double rho = oil.density.nominal_density;
@@ -146,25 +147,18 @@ double PP_Iteration_solve(const pipe_properties_t& pipe, const oil_parameters_t&
 	return Q;
 }
 
-/// @brief Класс с функцией невязок для решения методом Ньютона
+
+/// @brief Класс с функцией невязок для решения методом Ньютона-Рафсона
 class solver_Newton : public fixed_system_t<1>
 {
 public:
-	solver_Newton(const pipe_properties_t& pipe_t, const oil_parameters_t& oil_t, double p0, double pl)
-		: pipe{ pipe_t }, oil{ oil_t }, p{ p0, pl }
+	solver_Newton(const residual_func_t& res_fun)
+		: res_func{ res_fun }
 	{
 	}
 
 	double residuals(const double& v) {
-		// Расчёт коэффициента лямбда
-		double lambda = getLambda(pipe, oil, v);
-		// Расчёт длины трубопровода
-		double L = pipe.profile.coordinates.back() - pipe.profile.coordinates.front();
-
-		double H0 = p[0] / (oil.density.nominal_density * g) + pipe.profile.heights.front();
-		double HL = p[1] / (oil.density.nominal_density * g) + pipe.profile.heights.back();
-		double dH = lambda * (L * pow(v, 2)) / (2 * pipe.wall.diameter * g);
-		double result = dH + HL - H0; // Задание функции невязок
+		double result = res_func(v);
 		return result;
 	}
 
@@ -174,8 +168,6 @@ public:
 	/// @return Возвращает расход
 	double solve()
 	{
-		double eps = pipe.wall.getCompressionRatio();
-		// Задание настроек решателя по умолчанию
 		fixed_solver_parameters_t<1, 0> parameters;
 		// Создание структуры для записи результатов расчета
 		fixed_solver_result_t<1> result;
@@ -183,63 +175,14 @@ public:
 		// { 0, 0 } - Начальное приближение
 		fixed_newton_raphson<1>::solve_dense(*this, { 1 }, parameters, &result);
 
-		double Q = result.argument * PI * pow(pipe.wall.diameter, 2) / 4;
+		double speed = result.argument;
 
-		return Q;
+		return speed;
 	}
 protected:
-	const pipe_properties_t& pipe;
-	const oil_parameters_t& oil;
-	double p[2];
+	const residual_func_t& res_func;
 };
 
-/// @brief Солвер для Ньютона поверх Эйлера
-class solver_Newton_Euler : public fixed_system_t<1>
-{
-public:
-	double residuals(const double& v) {
-		QP_tasks_solver euler_solver(pipe, oil);
-		vector<double> press_prof = euler_solver.QP_Euler_solver(p[1], v, false);
-		// Задание функции невязок
-		double result = press_prof[0] - p[0]; 
-		return result;
-	}
-
-	/// @brief Решение задачи PP Ньютоном поверх Эйлера
-	/// @param p0 Давление в начале трубопровода
-	/// @param pl Давление в конце трубопровода
-	/// @return Возвращает расход
-	double solve()
-	{
-		fixed_solver_parameters_t<1, 0> parameters;
-		// Создание структуры для записи результатов расчета
-		fixed_solver_result_t<1> result;
-		// Решение системы нелинейныйх уравнений <1> с помощью решателя Ньютона - Рафсона
-		// { 0, 0 } - Начальное приближение
-		fixed_newton_raphson<1>::solve_dense(*this, { 1 }, parameters, &result);
-
-		double Q = result.argument * PI * pow(pipe.wall.diameter, 2) / 4;
-
-		return Q;
-	}
-
-	/// @brief Конструктор солвера
-	/// @param pipe_t Ссылка на структуру трубы
-	/// @param oil_t Ссылка на структуру нефти
-	/// @param p0 Давление в начале трубопровода
-	/// @param pl Давление в конце трубопровода
-	/// @param direction Направление расчёта
-	solver_Newton_Euler(const pipe_properties_t& pipe_t, const oil_parameters_t& oil_t, double p0, double pl, bool direction = false)
-		: pipe{ pipe_t }, oil{ oil_t }, p{ p0, pl }, dir{ direction }
-	{
-	}
-
-protected:
-	const pipe_properties_t& pipe;
-	const oil_parameters_t& oil;
-	double p[2];
-	bool dir;
-};
 
 
 
