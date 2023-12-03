@@ -108,6 +108,12 @@ protected:
 
 };
 
+/// @brief Решение задачи PP методом простых итераций
+/// @param pipe Ссылка на структуру трубы
+/// @param oil Ссылка на структуру нефти
+/// @param p0 Давление в начале трубопровода
+/// @param pl Давление в конце трубопровода
+/// @return Возвращает расход
 double PP_Iteration_solve(const pipe_properties_t& pipe, const oil_parameters_t& oil, double p0, double pl)
 {
 	double lym_b, lambda, Re, speed;
@@ -183,6 +189,67 @@ protected:
 	const residual_func_t& res_func;
 };
 
+/// @brief Солвер для решения задачи PP методом Ньютона-Рафсона
+class PP_solver
+{
+public:
+	PP_solver(const pipe_properties_t& pipe, const oil_parameters_t& oil, double p0, double pl)
+		: pipe{ pipe }, oil{ oil }, p0{ p0 }, pl{ pl }
+	{}
 
+	/// @brief Решает задачу PP методом Ньютона по формуле
+	/// @return Возвращает расход
+	double solve_newton()
+	{
+		residual_func_t res_fun =
+			[this](const double& v)
+			{
+				// Расчёт коэффициента лямбда
+				double lambda = getLambda(pipe, oil, v);
+				// Расчёт длины трубопровода
+				double L = pipe.profile.getLength();
 
+				double H0 = p0 / (oil.density.nominal_density * g) + pipe.profile.heights.front();
+				double HL = pl / (oil.density.nominal_density * g) + pipe.profile.heights.back();
+				double dH = lambda * (L * pow(v, 2)) / (2 * pipe.wall.diameter * g);
+				return dH + HL - H0; // Задание функции невязок
+			};
+
+		solver_Newton Newton_solver(res_fun);
+		double Q = Newton_solver.solve() * PI * pow(pipe.wall.diameter, 2) / 4;
+
+		return Q;
+	}
+
+	/// @brief Решает задачу PP методом Ньютона поверх Эйлера
+	/// @return Возвращает расход 
+	double solve_newton_euler()
+	{
+		residual_func_t res_fun =
+			[this](const double& v)
+			{
+				// Количество точек профиля
+				size_t dots_count = pipe.profile.getPointCount();
+				// Профиль давлений
+				profile_t press_profile(dots_count, pl);
+				// Объект для решения QP методом Эйлера
+				QP_tasks_solver solver(pipe, oil);
+				// Решение задачи QP методом Эйлера
+				solver.QP_Euler_solver(press_profile, v, false);
+				// Функция невязок
+				return press_profile.front() - p0;
+			};
+
+		solver_Newton Newton_solver(res_fun);
+		double Q = Newton_solver.solve() * PI * pow(pipe.wall.diameter, 2) / 4;
+
+		return Q;
+	}
+
+protected:
+	const pipe_properties_t& pipe;
+	const oil_parameters_t& oil;
+	double p0; 
+	double pl;
+};
 
