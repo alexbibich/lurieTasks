@@ -133,24 +133,9 @@ TEST(PP_task, Newton)
     double p0 = 5e6;
     double pl = 0.8e6;
 
-    // Задание функции невязок
-    residual_func_t res_fun =
-        [pipe_prop, oil, p0, pl](const double& v)
-        {
-            // Расчёт коэффициента лямбда
-            double lambda = getLambda(pipe_prop, oil, v);
-            // Расчёт длины трубопровода
-            double L = pipe_prop.profile.getLength();
+    PP_solver solv(pipe_prop, oil, p0, pl);
 
-            double H0 = p0 / (oil.density.nominal_density * g) + pipe_prop.profile.heights.front();
-            double HL = pl / (oil.density.nominal_density * g) + pipe_prop.profile.heights.back();
-            double dH = lambda * (L * pow(v, 2)) / (2 * pipe_prop.wall.diameter * g);
-            return dH + HL - H0; // Задание функции невязок
-        };
-
-    solver_Newton Newton_solver(res_fun);
-
-    double Q = Newton_solver.solve() * PI * pow(pipe_prop.wall.diameter, 2) / 4;
+    double Q = solv.solve_newton();
     write_ans("Решение задачи PP методом Ньютона, м3/c: ", Q);
     write_ans("Решение задачи PP методом Ньютона, м3/ч: ", Q * 3600);
 
@@ -169,23 +154,9 @@ TEST(PP_task, Newton_Euler)
     double p0 = 5e6;
     double pl = 0.8e6;
 
-    // Задание функции невязок
-    residual_func_t res_fun =
-        [pipe_prop, oil, p0, pl](const double& v)
-        {
-            size_t dots_count = pipe_prop.profile.getPointCount();
-            profile_t press_profile(dots_count, pl);
+    PP_solver solv(pipe_prop, oil, p0, pl);
 
-            QP_tasks_solver solver(pipe_prop, oil);
-
-            solver.QP_Euler_solver(press_profile, v, false);
-            
-            return press_profile.front() - p0;
-        };
-
-    solver_Newton Newton_solver(res_fun);
-
-    double Q = Newton_solver.solve() * PI * pow(pipe_prop.wall.diameter, 2) / 4;
+    double Q = solv.solve_newton_euler();
     write_ans("Решение задачи PP методом Ньютона поверх Эйлера, м3/c: ", Q);
     write_ans("Решение задачи PP методом Ньютона поверх Эйлера, м3/ч: ", Q * 3600);
 }
