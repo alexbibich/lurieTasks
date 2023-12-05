@@ -26,7 +26,7 @@ typedef vector<double> profile_t;
 double getLambda(const pipe_properties_t& pipe, const oil_parameters_t& oil, double speed)
 {
 	// Расчёт относительной шероховатости
-	double eps = pipe.wall.getCompressionRatio();
+	double eps = pipe.wall.relativeRoughness();
 	// Расчёт числа Рейнольдса
 	double Re = speed * pipe.wall.diameter / oil.viscosity.nominal_viscosity;
 	// Расчёт коэффициента лямбда
@@ -118,7 +118,7 @@ double PP_Iteration_solve(const pipe_properties_t& pipe, const oil_parameters_t&
 {
 	double lym_b, lambda, Re, speed;
 	// Расчёт относительной шероховатости
-	double eps = pipe.wall.getCompressionRatio();
+	double eps = pipe.wall.relativeRoughness();
 	// Ограничитель итераций
 	size_t itr_stop = 0;
 	size_t itr_max = 1000;
